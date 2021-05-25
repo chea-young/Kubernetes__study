@@ -42,3 +42,6 @@
   - sudo systemctl restart docker
   -sudo docker info |grep -i cgroup: Cgroup Driver:systemctl 으로 수정됨.
 
+#### PC
+- TOKEN: ijxdl4.sepbo05on3rty056
+- CA CERT: 6355e9587eb094a2f88f4b6726b3547aabd7a4d294968d148ed7f50247026868
