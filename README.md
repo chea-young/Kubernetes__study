@@ -18,7 +18,7 @@
   - kubectl get pods: pod 상태 확인
   - kubeadm init --apiserver-advertise-address=<A> --pod-network-cidr=[APISERVER_IP]:[APISERVER_PORT]: A는 k8s 오버레이 네트워크 설정을 위해서 [APISERVER_IP]:[APISERVER_PORT]는 외부에서 접속가능한 주소를 설정하기 위해서 사용 [마스터 노드 설정 및 초기화]
   - kubeadm join [APISERVER_IP]:[APISERVER_PORT] --token [TOKEN] --discover-token-ca-cert-hash [CA_CERT] : [TOKEN]은 'kubeadm token create --print-join-command'를 마스터 노드에서 실행 시 생성되는 토큰을 사용하고 [CA_CERT]는 
-  " openssl x509 -pubkey \ -in /etc/kubernetes/pki/ca.crt | openssl rsa \ -pubin -outform der 2>/dev/null | openssl dgst \ -sha256 -hex | sed 's/^.* //' "를 마스터 노드에서 생성시 나오는 CA CERT를 사용한다.
+  " openssl x509 -pubkey \ -in /etc/kubernetes/pki/ca.crt | openssl rsa \ -pubin -outform der 2>/dev/null | openssl dgst \ -sha256 -hex | sed 's/^.* //' "를 마스터 노드에서 생성시 나오는 CA CERT를 사용한다. [Worker 노드 설정 및 초기화]
 
 ### docker image 생성 후 docker hub에 올리기
 1. Dockerfile 생성
@@ -45,3 +45,5 @@
 #### PC
 - TOKEN: ijxdl4.sepbo05on3rty056
 - CA CERT: 6355e9587eb094a2f88f4b6726b3547aabd7a4d294968d148ed7f50247026868
+kubeadm join 220.67.124.124:6443 --token ijxdl4.sepbo05on3rty056  \
+    --discovery-token-ca-cert-hash sha256: 6355e9587eb094a2f88f4b6726b3547aabd7a4d294968d148ed7f50247026868
