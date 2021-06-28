@@ -42,9 +42,16 @@
       - ENV <키> <VALUE>> ENV <키>=<VALUE>: 환경변수를 설정하기 위해서 사용한다. 이렇게 설정된 환경 변수는 이미지 빌드시에도 혹은 해당 컨테이너에서 돌아가는 애플리케이션도 접근가능하다.
       - AGE
       - COPY
-2. docker build -t userid/이름:버전
+2. docker build -t userid/이름:버전 .
 3. docker login
 4. docker push  userid/이름:버전
+5. docker images
+  - docker  image가 생성된 것을 확인할 수 있다.
+6. docker run [이름]
+  - docker를 실행시킬 수 있다.
+  - docker run -itd --name [생성하고 싶은 container 이름] [image 이름] 
+  - docker exec -it [container이름 or ID] bash
+    - 컨테이너에 접속 할 수 있다.
 ### 참고 사이트 
   -  How To Install and Use Docker on Ubuntu 20.04: https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04
   -  Ubuntu 18.04 에서 Kubernetes 설치하기: https://www.skyer9.pe.kr/wordpress/?p=640
