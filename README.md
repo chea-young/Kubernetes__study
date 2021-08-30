@@ -1,4 +1,11 @@
 # Kubernetes__study
+- 쿠버네티스를 혼자 공부하면서 그리고 'Inflearn', 김태민님의 대세는 쿠버네티스 강의를 들으면서 정리하는 Repository
+## 전체 목차
+## 대세는 쿠버네티스
+1. Introduction
+[기초편] 기초 다지기
+1. Why Kubernetes?
+2. VM vs Container
 
 ### 클러스터
 - 쿠버네티스의 여러 리소스를 관리하기 위한 집합체
