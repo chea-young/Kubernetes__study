@@ -6,6 +6,7 @@
 [기초편] 기초 다지기
 1. Why Kubernetes?
 2. VM vs Container
+3. M vs Container
 
 ### 클러스터
 - 쿠버네티스의 여러 리소스를 관리하기 위한 집합체
