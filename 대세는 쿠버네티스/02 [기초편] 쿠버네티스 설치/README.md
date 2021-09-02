@@ -120,3 +120,14 @@ kubectl apply -f calico.yaml
 
 kubectl get pods --all-namespaces
 ```
+#### Dashboard 
+1. Dashboard 설치
+```
+kubectl apply -f https://kubetm.github.io/documents/appendix/kubetm-dashboard-v1.10.1.yaml
+```
+2. 백그라운드로 proxy 띄우기
+```
+nohup kubectl proxy --port=8001 --address=192.168.75.133 --accept-hosts='^*$' >/dev/null 2>&1 &
+```
+3. 접속 URL
+- [http://192.168.75.133:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/]로 접속
