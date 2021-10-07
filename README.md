@@ -6,7 +6,7 @@
 [기초편] 기초 다지기
 1. Why Kubernetes?
 2. VM vs Container
-3. M vs Container
+3. VM vs Container
 
 ### 클러스터
 - 쿠버네티스의 여러 리소스를 관리하기 위한 집합체
@@ -82,3 +82,6 @@
 - CA CERT: 6355e9587eb094a2f88f4b6726b3547aabd7a4d294968d148ed7f50247026868
 kubeadm join 220.67.124.124:6443 --token ijxdl4.sepbo05on3rty056  \
     --discovery-token-ca-cert-hash sha256: 6355e9587eb094a2f88f4b6726b3547aabd7a4d294968d148ed7f50247026868
+
+#### 참고 링크
+- k8s 클러스터 구축하기 - #1 VirtualBox[https://coffeewhale.com/kubernetes/cluster/virtualbox/2020/08/31/k8s-virtualbox/]

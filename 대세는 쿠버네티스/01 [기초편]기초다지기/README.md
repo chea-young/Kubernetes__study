@@ -1,6 +1,27 @@
 ## [기초편]기초다지기
 
-### Kubernetes(쿠버네티스)
+### Kubernetes(쿠버네티스) 구성
+<img>
+- 한 서버는 Master로 쓰고 다른 서버들은 하나 혹은 여러 개의 Node들이 연결이 연결이 된다. 그리고 이것들을 묶어 한 Cluster(클러스터)가 된다.
+- Master: 전반적인 기능들을 제어하는 역할이다.
+- Node: 자원을 제공한다. 만약 클러스터 내의 자원을 늘리고 싶다면 Node들을 늘리면 된다.
+- Namespace: 쿠버네티스 Object들을 독립 된 공간으로 분리되게 만들어 준다. Namespace에는 Pod들이 있고 이 Pod들에게 외부로 연결이 가능하도록 id를 할당해주는 서비스가 있어서 같은 Namespace의 Pod와 연결이 가능하지만 다른 Namespace의 Pod와는 연결이 불가능하다.
+- Pod: 최소 배포 단위이다. Pod안에는 여러 컨테이너가 있다. Pod에 문제가 생겨 재생성되면 그 앱들이 날라가기 때문에 Volume을 만든다. 
+- Container: 컨테이너 하나 당 하나의 App이 동작한다.
+- Volume: Pod의 데이터를 별로도 저장하는 곳이다.
+- ResourceQuota / LimitRange: 한 Namespace에서 사용할 수 있는 자원의 양을 한정시킨다.
+- ConfigMap / Secret: Pod 생성 시 환경변수 값을 넣어주거나 파일을 마운트를 할 수 있도록 설정을 도와준다.
+- Controller: Pod들을 관리해주는 일들을 한다.
+
+#### Controller
+- Replication Controller, ReplicaSet: Pod가 죽으면 감지해서 다시 살려주거나 Pod의 개수를 조절(scale)해준다.
+- Deployment: 배포 후에 Pod들을 새 버전으로 업그레이드 해준다. 그리고 업그레이드를 하던 중에 문제가 생기면 rollback을 할 수 있도록 도와준다.
+- DaemonSet: 한 노드의 Pod가 하나씩만 유지가 되도록 하는 것인데 이렇게 사용을 해야만 하는 모듈들이 존재한다.
+- Job: 어떤 특정 작업만하고 종료를 시켜야하는 일을 할 때 Pod가 동작을 하도록 도와준다.
+- CrobJob; 특정한 잡업만 하는 Job들을 주기적으로 실행시켜야 할 때 사용한다.
+
+
+### Kubernetes(쿠버네티스) 특징
 - 서비스 효율로 서버가 적어지면 유지보수 비용이 적게 든다.
 - Deployment
 - Auto Scalling
