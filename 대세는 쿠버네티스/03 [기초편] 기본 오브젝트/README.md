@@ -72,3 +72,87 @@ spec:
             memory: 3Gi
     ```
         - limit: memory는 초과 시 Pod를 종료시키지만 CPU경우 초과 시 request로 낮추고 종료하지는 않는다.
+
+### 실습
+<img src="./img/Pod-1.pmg" />
+- 대시보드에 '+생성' 버튼을 누르면 생성할 수 있다.
+<img src="./img/Pod-1.pmg" />
+- Pod 생성 후 'Exec' 버튼을 누르면 Pod안의 Container 안으로 들어갈 수 있다
+
+#### ReplicationController
+- Pod를 관리해주는 역할을 하는데 Pod가 죽으면 생성해주는 역할을 하게 된다.
+-> 그래서 삭제를 하게 되면 바로 삭제되지 않고 다른 새로운 ip를 가진 새 파드를 생성한다.
+```
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: replication-1
+spec:
+  replicas: 1
+  selector:
+    app: rc
+  template:
+    metadata:
+      name: pod-1
+      labels:
+        app: rc
+    spec:
+      containers:
+      - name: container
+        image: kubetm/init
+
+``` 
+#### 라벨 이용하기
+- service-1를 type:web으로 만들면 2개의 node만 연결된다.
+- service-2를 producetion에게 돌아가고 있는 Pod들 3개가 연결된다.
+```
+# Pod (web, db, server, web-producetion, db-producetion, server-producetion)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-2
+  labels:
+    type: web
+    lo: dev
+spec:
+  containers:
+  - name: container
+    image: kubetm/init
+
+# Service -1
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-for-wed
+spec:
+  selector:
+    type: web
+  ports:
+  - port: 8080
+
+# Service -2
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-for-producetion
+spec:
+  selector:
+    lo: producetion
+  ports:
+  - port: 8080
+```
+#### Node Schedule
+- `kubernetes.io/hostname: k8s-node1`이 node1에 있는 lable로 Pod-1로 생성하면 node1에 생성이 된다
+```
+#Pod-1
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-3
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: k8s-node1
+  containers:
+  - name: container
+    image: kubetm/init
+```
