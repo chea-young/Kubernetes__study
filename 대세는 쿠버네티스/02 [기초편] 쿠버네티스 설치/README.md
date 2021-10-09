@@ -55,6 +55,7 @@ cat << EOF >> /etc/hosts
 192.168.75.133 k8s-master
 192.168.75.134 k8s-node1
 192.168.75.135 k8s-node2
+192.168.75.137 k8s-node3
 EOF
 ```
 #### Installation
@@ -105,7 +106,7 @@ systemctl enable --now kubelet
 ```
 2. Node 연결
 ```
-kubeadm join 192.168.75.133:6443 --token 19zx2v.15rjjnquni2w7p4e --discovery-token-ca-cert-hash sha256:8a3fe31ec9a914e6eaf2fc9dc6c08403f504b80c37ba3bc309ecbb015a930980
+kubeadm join 192.168.75.133:6443 --token d8q4aq.nqik35jey0zswh1k --discovery-token-ca-cert-hash sha256:8a3fe31ec9a914e6eaf2fc9dc6c08403f504b80c37ba3bc309ecbb015a930980
 ```
 3. Node 연결 확인(Master에서 하기!)
 ```

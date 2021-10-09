@@ -73,7 +73,7 @@ spec:
     ```
         - limit: memory는 초과 시 Pod를 종료시키지만 CPU경우 초과 시 request로 낮추고 종료하지는 않는다.
 
-### 실습
+### Pod 실습
 <img src="./img/Pod-1.pmg" />
 - 대시보드에 '+생성' 버튼을 누르면 생성할 수 있다.
 <img src="./img/Pod-1.pmg" />
@@ -156,3 +156,45 @@ spec:
   - name: container
     image: kubetm/init
 ```
+
+### Service
+- 서비스는 자신의 Cluster IP를 가지고 있다. 그리고 이 서비스를 Pod에 연결하면 서비스의 IP를 통해서도 Pod와 접근이 가능하게 된다.
+- Pod는 삭제되고 재생성되기 쉽지만 서비스는 사용자가 직접 지우지 않는 이상 삭제되지 않아서 서비스의 P로 파드에 접근하는 것이 다르다. 근데 서비스의 종류마다 접근하는 방식이 다르다.
+- 접근 방식
+  <img>
+  - ClusterIP : 쿠버네티스 클러스터내에서만 접근이 가능한 IP이다. 파드 IP 특성과 같아서 클러스터 내의 모든 Object는 접근할 수 있지만 클러스터 외부에서는 접근이 불가능하다.
+    - 외부에서 접근할 수 없고 클러스터내에서만 사용하는 IP로 이것에 접근할 수 있는 대상은 클러스터 내의 운영자와 같은 인가된 사용자이다. 주된 작업은 클러스터 대시보드를 작업을 하거나 각 Pod의 서비스 상태를 디버깅 작업을 한다. 
+  - NodePort: 저절로 서비스에 클러스터 IP가 할당되어 ClusterIP 기능이 포함되어 있으며 클러스터 쿠버네티스에 있는 모든 Node에 똑같은 포트가 할당이 되서 외부에서 IP의 포트로 접속을 하면 서비스에 연결이 된다. 또한 자신들에게 연결되는 있는 Pod에게 트래픽 전달이 가능하다.
+    - 물리적인 호스트에 IP를 통해서 Pod에 접근을 할 수가 있다. 
+  ```
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: svc-2
+  spec:
+    selector:
+      app: pod
+    ports:
+    - port: 9000
+      targetPort: 8080
+      nodePort: 30000
+    type: NodePort
+    externalTrafficPolicy: Local
+  ```
+    - nodePort는 30000~32767 포트를 할당할 수 있다. 
+    - `externalTrafficPolicy: Local`을 주면 특정 노드 포트에 IP 접근을 하는 트래픽은 서비스가 해당 노드위에 올려져 있는 파드한테만 트래픽을 전달을 해준다. 
+  - Load Balancer: Node Port의 성격을 그대로 가지고 있다. 그리고 Load Balancer가 생겨서 각각의 Node에 트래픽을 분산시켜준다. Load Balancer에 접근을 하기 위한 외부 접속 IP 주소는 별도로 외부접속 IP를 설정을 해주어야 한다.
+    - 실제 외부에 서비스를 노출시키려면 이것을 이용해야 내부 IP가 노출되지 않고 외부 IP를 통해서 안정적으로 서비스를 노출시킬 수 있다.
+    ```
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: svc-3
+    spec:
+      selector:
+        app: pod
+      ports:
+      - port: 9000
+        targetPort: 8080
+      type: LoadBalancer
+    ```
