@@ -198,3 +198,65 @@ spec:
         targetPort: 8080
       type: LoadBalancer
     ```
+### 실습 - Service
+- ClusterIP 실습: `curl 10.104.212.151:9000/hostname`를 master에 입력 시 파드의 hostname가 나옴.
+```
+#Pod -1
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-1-service
+  labels:
+     app: pod
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: k8s-node1
+  containers:
+  - name: container
+    image: kubetm/app
+    ports:
+    - containerPort: 8080
+
+# Servuce -1
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-1-service
+spec:
+  selector:
+    app: pod
+  ports:
+  - port: 9000
+    targetPort: 8080
+```
+- NodePort 실습: 생성시 내부 엔드포인트에 클러스터 IP로 접근을 했을 때 연결할 수 있는 포트, 노드로 접근을 했을 때 쓸 수 있는 포트이다. `curl 192.168.75.134:30000/hostname` 시 트래픽을 고르게 분포하여 파드 2개가 번갈아서 나온다. 
+```
+# NodePort -1
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-2
+spec:
+  selector:
+    app: pod
+  ports:
+  - port: 9000
+    targetPort: 8080
+    nodePort: 30000
+  type: NodePort
+  externalTrafficPolicy: Local
+```
+- Load Balancer: `kubectl get service svc-3`해보면 외부 IP를 할당해주는 플러그인이 없어서 'pending' 상태이다
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-3
+spec:
+  selector:
+    app: pod
+  ports:
+  - port: 9000
+    targetPort: 8080
+  type: LoadBalancer
+```
