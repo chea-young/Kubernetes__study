@@ -260,3 +260,75 @@ spec:
     targetPort: 8080
   type: LoadBalancer
 ```
+
+### Volume
+<img>
+- emptyDir: 컨테이너들끼리 데이터를 공유하기 위해서 볼륨을 사용한다. Pod 생성 시 만들어지고 삭제 시 없어지기 때문에 일시적인 목적을 가진 내용만 넣는 것이 좋다. 
+  ```
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: pod-volume-1
+  spec:
+    containers:
+    - name: container1
+      image: kubetm/init
+      volumeMounts:
+      - name: empty-dir
+        mountPath: /mount1
+    - name: container2
+      image: kubetm/init
+      volumeMounts:
+      - name: empty-dir
+        mountPath: /mount2
+    volumes:
+    - name : empty-dir
+      emptyDir: {}
+  ```
+    - 컨테이너가 각 다른 이름의 볼륨에 마운트하고 있지만 실제로는 똑같은 볼륨에 마운트하고 있는 것이다.
+- hostPath: Pod들이 죽어도 Node에 있는 데이터는 사라지지 않는다. Pod가 죽어서 재 생성이 될 때 다른 노드에 생성이 된다면 이전에 노드에 있던 볼륨을 마운트 할 수 없게 된다(하지만 노드를 추가할 때마다 똑같은 경로를 만들어서 직접 같은 Path끼리 마운트를 시켜주면 문제는 없어진다- 쿠버네티스의 역할이 아닌 운영자가 해줘야하는 입장).
+  - hostPath라는 속성이 존재한다. host에 있는 path는 pod가 생성이 되기 전에 존재해야 에러가 나지 않는다.
+- PVC/PV (Persisitent Volume Claim/Persistent Volume)
+  - Pod는 PVC를 이용해 PV와 연결된다. 
+  - User 영역(pod, PVC)과 Admin 영역(PV, Volume)이 나눠진다.
+  - 동작
+    1. 최초의 Admin이 PV를 만들어 놓는다.
+    2. 사용자가 PVC 생성
+    3. 쿠버네티스가 PVC 내용에 맞는 적절한 Volume에 연결을 해준다.
+    4. Pod를 만들 때 PVC를 사용하면 된다. 
+  ```
+  #PVC
+  apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: pvc-01
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 1G
+    storageClassName: ""
+  ```
+  - `storageClassName: ""` 이렇게 되면 기존에 있는 PV가 선택이 될 수 있다.
+  ```
+  apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    name: pv-04
+    labels:
+      pv: pv-04
+  spec:
+    capacity:
+      storage: 2G
+    accessModes:
+    - ReadWriteOnce
+    local:
+      path: /node-v
+    nodeAffinity:
+      required:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - {key: kubernetes.io/hostname, operator: In, values: [k8s-node1]}
+  ```
+  - k8s-node1라고 라벨링이 되어있는 노드 위에만 무조건 만들어진다는 뜻이다. 그래서 Pod는 무조건 이 node위에만 생성되게 되는 것이다.
