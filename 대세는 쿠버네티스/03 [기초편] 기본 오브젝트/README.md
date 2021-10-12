@@ -75,8 +75,10 @@ spec:
 
 ### Pod 실습
 <img src="./img/Pod-1.pmg" />
+
 - 대시보드에 '+생성' 버튼을 누르면 생성할 수 있다.
 <img src="./img/Pod-1.pmg" />
+
 - Pod 생성 후 'Exec' 버튼을 누르면 Pod안의 Container 안으로 들어갈 수 있다
 
 #### ReplicationController
@@ -263,6 +265,7 @@ spec:
 
 ### Volume
 <img>
+
 - emptyDir: 컨테이너들끼리 데이터를 공유하기 위해서 볼륨을 사용한다. Pod 생성 시 만들어지고 삭제 시 없어지기 때문에 일시적인 목적을 가진 내용만 넣는 것이 좋다. 
   ```
   apiVersion: v1
@@ -332,3 +335,53 @@ spec:
           - {key: kubernetes.io/hostname, operator: In, values: [k8s-node1]}
   ```
   - k8s-node1라고 라벨링이 되어있는 노드 위에만 무조건 만들어진다는 뜻이다. 그래서 Pod는 무조건 이 node위에만 생성되게 되는 것이다.
+
+### Volume 실습
+- emptyDir 실습
+   - Pod 생성 후 컨테이너로 들어가 `ls`로 확인 후 `mount | grep mount1`로 마운트가 되었는지 확인한다.
+   - mount 폴더에 들어가 `echo "file context" >> file.txt` 이렇게 폴더 생성 후 다른 컨테이너의 마운트 폴더에 확인해보면 동일한 파일이 존재하는 것을 확인할 수 있다.
+```
+#Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-volume-1
+spec:
+  containers:
+  - name: container1
+    image: kubetm/init
+    volumeMounts:
+    - name: empty-dir
+      mountPath: /mount1
+  - name: container2
+    image: kubetm/init
+    volumeMounts:
+    - name: empty-dir
+      mountPath: /mount2
+  volumes:
+  - name : empty-dir
+    emptyDir: {}
+```
+- hostPath 실습
+   - `echo "file context" >> file.txt`를 한 컨테이너에 마운트 된 폴더에 파일을 만들어서 다른 파드에 존재하는지 확인하고 실제 k8s-node3에 존재하는지도 확인한다.
+```
+#Pod 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-volume-3
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: k8s-node3
+  containers:
+  - name: container
+    image: kubetm/init
+    volumeMounts:
+    - name: host-path
+      mountPath: /mount1
+  volumes:
+  - name : host-path
+    hostPath:
+      path: /node-v
+      type: DirectoryOrCreate # 만약 이 path가 해당 위치에 없으면 자동으로 생성
+```
