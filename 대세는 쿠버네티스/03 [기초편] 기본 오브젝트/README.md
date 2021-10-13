@@ -448,27 +448,145 @@ spec:
   - Env (Literal): 상수를 넣는 방법
     - ConfigMap은 key와 value로 이루어져 있다. 그래서 필요한 상수들을 정의 해 놓으면 파드를 생성할 때 연결해서 컨터이너 안의 환경변수에 세팅할 수 있다. key, value를 무한히 넣을 수 있다.
     - Secret와 거의 동일 하지만 value를 넣을 때 base64 인코딩을 해서 넣는다. 파드로 연결할 때는 Decoding이 되서 들어간다. 일반적인 오브젝트 값들은 쿠버네티스 DB에 저장이되지만 Secret은 메모리에 저장이 되며 1Mbyte까지만 저장할 수 있다.
+    <img>
+
   - Env (File)
     - ConfigMap: 파일 이름이 Key가 되고 파일 내용이 value가 된다. 파드로 연결하는 것은 대시보드에서 지원하지 않기 때문에 커맨드를 이용해야 한다. 만약 파일이 수정된다면 Pod가 죽어서 다시 연결해 가져와야 수정이 된다.
     - Secret은 ConfigMap과 거의 같지만 value가 base64로 인코딩 된다. 명령어를 사용할 대 파일 텍스트의 내용이 base64로 변경이 되기 때문에 파일 안의 내용이 base64였다면 두변 인코딩이 되는 것이기 때문에 주의해야 한다.
+    <img>
+
   - Volume Mount (File)
     - ConfigMap: 파일을 파드에 담을 때 컨테이너 안에 mount path를 정의를 하고 paht 안으로 파일을 마운트 할 수 있다. 파일의 내용이 바뀌어도 마운트 된 것이기 때문에 바로 수정이 반영된다.
 
   ### ConfigMap, Secret - Env, Mount 실습
   - Env(literal)
+    - Pod까지 생성 후 pod에 들어가 `cat /usr/bin/env`를 해보면 잘 들어가 있는 것을 다시 한 번 더 확인할 수 있다.
   ```
   # ConfigMap
-
-  # Pod
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: cm-dev
+  data:
+    SSH: 'false' # '를 뺴고 넣으면 에러가 난다. 꼭 스트링 값만 지원한다.
+    User: dev
 
   #Secret
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: sec-dev
+  data:
+    Key: MTIzNA== # base64 인코딩을 하고 넣어줘야 에러가 나지 않는다.
 
+  #Pod
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: pod-1
+  spec:
+    containers:
+    - name: container
+      image: kubetm/init
+      envFrom:
+      - configMapRef:
+          name: cm-dev
+      - secretRef:
+          name: sec-dev
   ```
   - Env(file)
+    - master에서 ConfigMap, Secret 커맨드를 쳐서 생성한다. 생성 후 대시보드를 들어가 확인해 볼 수 있다.
+    - Pod를 생성한 후 `env`로 들어가서 보면 ConfigMap Secret이 잘 연결 된 것을 확인할 수 있다.
   ```
-  # ConfigMap
-
-  # Pod
+  #ConfigMap
+  echo "Content" >> file-c.txt
+  kubectl create configmap cm-file --from-file=./file-c.txt
 
   #Secret
+  echo "Content" >> file-s.txt
+  kubectl create secret generic sec-file --from-file=./file-s.txt
+
+  #Pod
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: pod-file
+  spec:
+    containers:
+    - name: container
+      image: kubetm/init
+      env:
+      - name: file-c
+        valueFrom:
+          configMapKeyRef:
+            name: cm-file
+            key: file-c.txt
+      - name: file-s
+        valueFrom:
+          secretKeyRef:
+            name: sec-file
+            key: file-s.txt
+
   ```
+-  Volume Mount (File)
+  - Pod 생성 후 컨테이너로 들어가 마운트 파일에 가보면 잘 연결된 것을 확인할 수 있고 수정 사항도 잘 반영되는 것을 알 수 있다.
+```
+#Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-mount
+spec:
+  containers:
+  - name: container
+    image: kubetm/init
+    volumeMounts:
+    - name: file-volume
+      mountPath: /mount
+  volumes:
+  - name: file-volume
+    configMap:
+      name: cm-file
+```
+
+### Namespace, ResourceQuota, LimitRange
+- 자원이 정해져 있는데 한 네임 스페이스에서 자원을 다 써버리면 다른 네임스페이스에서 자원을 사용할 수 있는 문제가 발생하는데 이러한 문제를 해결하기 위해 사용하는 것이 Resource quota이다. 이것을 네임 스페이스마다 달면 한계를 설정할 수 있어 파드 자원이 한계를 넘을 수 없다. 만약 한 파드가 자원 사용량을 너무 크게 해버리면 다른 파드들이 네임 스페이스에 더이상 들어올 수 없게 되고 이러지 못 하게 관리를 하기 위해서 Limit Range를 둬서 네임 스페이스에 들어오는 파드의 크기를 제한할 수 있다. 그리고 이것들은 클러스터에서 달 수 있어 제한을 걸 수 있다.
+<img>
+
+- Namespace
+  - 한 네임스페이스 안에는 같은 타입의 오브젝트는 이름이 중복 될 수 없다
+  - 타 네임스페이스에 있는 자원과 분리가 되서 관리가 된다. (라벨로 연결은 안된다)
+  - NOde, PV는 모든 네임스페이스에서 공유할 수 있는 오브젝트이다.
+  - 네임스페이스를 지우면 네임스페이스에 있던 자원이 지워진다.
+
+<img>
+- ResourceQuota
+  - 설정하고 싶은 자원을 명시를 해서 달 수가 있다.
+  - 스펙을 적지 않고 오브젝트를 생성하려고 한다면 생성이 되지 않는다.
+
+<img>
+- LimitRange
+  - 네임 스페이스에 들어올 수 있는지 체크를 한다.
+
+### Namespace, ResourceQuota, LimitRange 실습
+- Namespace 
+```
+#Namespace-1
+
+#Pod
+
+#Namespace-2
+
+#Service
+```
+- ResourceQuota
+```
+#ResourceQuota
+
+#Pod
+
+```
+- LimitRange
+```
+#LimitRange
+```
