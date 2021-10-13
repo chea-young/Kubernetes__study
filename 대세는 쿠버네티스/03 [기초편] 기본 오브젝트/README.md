@@ -371,7 +371,7 @@ kind: Pod
 metadata:
   name: pod-volume-3
 spec:
-  nodeSelector:
+  nodeSelector: # node 지정 -> 만약 하지 않으면 자원 사정을 보고 스케줄러가 할당
     kubernetes.io/hostname: k8s-node3
   containers:
   - name: container
@@ -384,4 +384,56 @@ spec:
     hostPath:
       path: /node-v
       type: DirectoryOrCreate # 만약 이 path가 해당 위치에 없으면 자동으로 생성
+```
+- PVC/PV
+  - PV 만든 후 PVC를 만들면 맞는 PV와 연결되게 되는데 한번 클레임이 연결되면 이 클레임은 다른 곳에서 사용할 수 없다.
+  - 만약 PVC 생성했을 때 맞는 PV가 없을 경우 연결이 되지 않는다.(PVC가 요청한 볼륨이 낮으면 할당을 하주지만 더 높으면 할당해주지 않는다.)
+```
+# PV
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-03
+spec:
+  capacity: # 이렇게 적는다고 해서 local 볼륨이 이렇게 생성되지는 않는다.
+    storage: 2G
+  accessModes:
+  - ReadWriteOnce # ReadOnlyMany
+  local:
+    path: /node-v
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - {key: kubernetes.io/hostname, operator: In, values: [k8s-node1]} # node1에 만들어 진다.
+
+#PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-01
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2G
+  storageClassName: ""
+
+#Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-volume-3
+spec:
+  containers:
+  - name: container
+    image: kubetm/init
+    volumeMounts:
+    - name: pvc-pv
+      mountPath: /mount3
+  volumes:
+  - name : pvc-pv
+    persistentVolumeClaim:
+      claimName: pvc-01
 ```
