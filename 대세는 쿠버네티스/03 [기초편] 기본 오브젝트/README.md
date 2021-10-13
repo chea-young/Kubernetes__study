@@ -437,3 +437,38 @@ spec:
     persistentVolumeClaim:
       claimName: pvc-01
 ```
+
+### ConfigMap, Secret - Env, Mount
+- ConfigMap: 내가 분리해야하는 일반적인 상수를 모아서 만든 것이다.
+- Secret: 보안적인 부분을 모아서 만든 것이다.
+- 파드 생성 시 두 오브젝트를 연결해서 만들어 파드의 환경변수에 오브젝트에 있는 상수들이 들어가게 된다.
+- 방식
+  <img>
+
+  - Env (Literal): 상수를 넣는 방법
+    - ConfigMap은 key와 value로 이루어져 있다. 그래서 필요한 상수들을 정의 해 놓으면 파드를 생성할 때 연결해서 컨터이너 안의 환경변수에 세팅할 수 있다. key, value를 무한히 넣을 수 있다.
+    - Secret와 거의 동일 하지만 value를 넣을 때 base64 인코딩을 해서 넣는다. 파드로 연결할 때는 Decoding이 되서 들어간다. 일반적인 오브젝트 값들은 쿠버네티스 DB에 저장이되지만 Secret은 메모리에 저장이 되며 1Mbyte까지만 저장할 수 있다.
+  - Env (File)
+    - ConfigMap: 파일 이름이 Key가 되고 파일 내용이 value가 된다. 파드로 연결하는 것은 대시보드에서 지원하지 않기 때문에 커맨드를 이용해야 한다. 만약 파일이 수정된다면 Pod가 죽어서 다시 연결해 가져와야 수정이 된다.
+    - Secret은 ConfigMap과 거의 같지만 value가 base64로 인코딩 된다. 명령어를 사용할 대 파일 텍스트의 내용이 base64로 변경이 되기 때문에 파일 안의 내용이 base64였다면 두변 인코딩이 되는 것이기 때문에 주의해야 한다.
+  - Volume Mount (File)
+    - ConfigMap: 파일을 파드에 담을 때 컨테이너 안에 mount path를 정의를 하고 paht 안으로 파일을 마운트 할 수 있다. 파일의 내용이 바뀌어도 마운트 된 것이기 때문에 바로 수정이 반영된다.
+
+  ### ConfigMap, Secret - Env, Mount 실습
+  - Env(literal)
+  ```
+  # ConfigMap
+
+  # Pod
+
+  #Secret
+
+  ```
+  - Env(file)
+  ```
+  # ConfigMap
+
+  # Pod
+
+  #Secret
+  ```
