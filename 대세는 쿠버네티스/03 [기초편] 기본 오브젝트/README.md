@@ -570,23 +570,178 @@ spec:
 
 ### Namespace, ResourceQuota, LimitRange 실습
 - Namespace 
+  - nm1와 nm2에 모두 서비스와 파드 생성 후 nm2의 파드 안 컨테이너에 들어가 `curl 20.111.218.77:8080/hostname` `curl 10.110.221.16:9000/hostname`
 ```
 #Namespace-1
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nm-1
 
-#Pod
+#Pod -1 -  20.111.218.77 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-1
+  namespace: nm-1 #대시보드에서 이 네임스페이스를 지정을 하고 만들면 적지 않아도 저절도 해당 네임스페이스에 생성이 된다.
+  labels:
+    app: pod
+spec:
+  containers:
+  - name: container
+    image: kubetm/app
+    ports:
+    - containerPort: 8080
 
-#Namespace-2
+#Service-1 - 10.110.221.16
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-1
+  namespace: nm-1
+spec:
+  selector:
+    app: pod
+  ports:
+  - port: 9000
+    targetPort: 8080
 
-#Service
+#Pod -2
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-1
+  namespace: nm-2
+  labels:
+    app: pod
+spec:
+  containers:
+  - name: container
+    image: kubetm/init
+    ports:
+    - containerPort: 8080
+
+#Service -2 
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-2
+spec:
+  ports:
+  - port: 9000
+    targetPort: 8080
+    nodePort: 30000 # 한 네임스페이스에서 30000을 쓰면 다른 네임스페이스에서 오브젝트는 이것을 사용할 수 없다.
+  type: NodePort
+
+#Pod -3
+apiVersion: v1
+kind: Pod
+metadata:
+ name: pod-2
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: k8s-node1
+  containers:
+  - name: container
+    image: kubetm/init
+    volumeMounts:
+    - name: host-path
+      mountPath: /mount1 # 한 네임스페이스에서 해당 파일에 마운트하면 다른 네임스페이스에서 똑같은 곳에 하게 되면 공유하게 되서 분리를 할 수 있는 명령어를 따로 실행해야 한다.
+  volumes:
+  - name : host-path
+    hostPath:
+      path: /node-v
+      type: DirectoryOrCreate
 ```
 - ResourceQuota
+  - ResourceQuota가 잘 만들어 졌는지 `kubectl describe resourcequotas --namespace=nm-3` 커맨드를 master에 실행해 확인해 볼 수 있다.
+  - 만약 네임스페이스에 리소스쿼터를 마지막에 만들면 제한을 넘게 되어도 그냥 잘 만들어 진다. 그래서 리소스 쿼터를 만들기 전에는 파드가 없는 상태에서 만들어야 한다.
 ```
+#Namespcae
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nm-3
+
 #ResourceQuota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: rq-1
+  namespace: nm-3
+spec:
+  hard:
+    pods: 2 # 파드 갯수 제어
+    requests.memory: 1Gi
+    limits.memory: 1Gi
 
-#Pod
+#Pod-1 -> 만드시 resources 부분을 명시해야한다는 에러가 뜬다.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-2
+spec:
+  containers:
+  - name: container
+    image: kubetm/app
 
+#Pod-2
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-3
+spec:
+  containers:
+  - name: container
+    image: kubetm/app
+    resources:
+      requests:
+        memory: 0.5Gi # 제한 자원량이 넘으면 에러가 뜬다.
+      limits:
+        memory: 0.5Gi
 ```
 - LimitRange
+  - LimitRange는 대시보드에서 확인이 안되기 때문에 master에서  `kubectl describe limitranges --namespace=nm-5` 커맨드를 이용해 확인할 수 있다.
+  - 만약 한 네임스페이스에 LimitRange가 2개라면 max는 더 적은거에 min은 더 큰거에 맞춰진다.
+  - 
 ```
+#Namespcae
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nm-5
+
 #LimitRange
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: lr-1
+spec:
+  limits:
+  - type: Container
+    min:
+      memory: 0.1Gi
+    max:
+      memory: 0.4Gi
+    maxLimitRequestRatio:
+      memory: 3 # N 배 이상 차이가 나면 안된다.
+    defaultRequest:
+      memory: 0.1Gi
+    default:
+      memory: 0.2Gi
+
+#Pod-1
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-1
+spec:
+  containers:
+  - name: container
+    image: kubetm/app
+    resources:
+      requests:
+        memory: 0.1Gi
+      limits:
+        memory: 0.5Gi
 ```
