@@ -653,7 +653,7 @@ spec:
       path: /node-v
       type: DirectoryOrCreate
 ```
-- ResourceQuota
+- ResourceQuota 📄📑
   - ResourceQuota가 잘 만들어 졌는지 `kubectl describe resourcequotas --namespace=nm-3` 커맨드를 master에 실행해 확인해 볼 수 있다.
   - 만약 네임스페이스에 리소스쿼터를 마지막에 만들면 제한을 넘게 되어도 그냥 잘 만들어 진다. 그래서 리소스 쿼터를 만들기 전에는 파드가 없는 상태에서 만들어야 한다.
 ```
