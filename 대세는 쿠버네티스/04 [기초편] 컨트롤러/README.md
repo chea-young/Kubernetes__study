@@ -103,3 +103,108 @@ spec:
       terminationGracePeriodSeconds: 0
 
 ```
+
+### Deployment - Recreate, RollingUpdate
+- Deployment: 현재 한 서비스가 운영 중인데 서비스를 업데이트를 해야해서 도움을 주는 컨트롤러이다.
+- Ingress Controller: 유입되는 트래픽을 URL path에 따라서 서비스에 연결해주는 역할을 한다.
+#### 핵심기능
+<img />
+
+  - **ReCreate**
+<img />
+
+  - 버전 업그레이드를 한다고 가정하였을 때 우선 파드들을 삭제하면 서비스에 대한 downtime이 발생하고 자원사용량이 없어지게 된다. 그 후 다음 버전에 대한 파드를 만들어진다.
+  - 문제점: downtime 때문에 일시적인 정지가 일어날 수 있다.
+  - 배포방식:  Deployment에 selector replicas, template는 ReplicaSet을 만들어 그것으로 파드를 관리하기 위해 값을 넣어준다. 업그레이드를 하고 싶다면 Deployment의 템플릿을 다음버전으로 바꿔주고 기존의 ReplicaSet의 replicas를 0으로 만들어주면 파드들도 없어지고 서비스도 연결대상이 없어지기 때문에 Downtime이 발생한다. 이후 새로운 ReplicaSet을 만들어 다음 버전에 대한 파드를 만들어 서비스와 연결된다. 새로만든 replicas를 늘리고 이전에 레플리카셋의 replicas를 하나 제거하고 이 과정을 반복해서 업그레이드를 시킨다.
+- **Rolling Update**
+<img />
+
+  - 버전 업그레이드를 한다고 가정하였을 때 다음 버전에 대한 파드를 생성하며 그렇기 때문에 자원 사용량이 늘어나게 된다. 이 후 전 버전 파드를 하나 삭제하고 이 방식을 반복한다.
+  - 추가적인 자원을 요구하기는 하지면 downtime이 없는 방식이다.
+  - 배포방식 : 업그레이드가 하고 싶다음 다음 버전으로 템플릿을 교체해 Replicaset을 만들어주고 그에대한 파드를 만들어 서비스와 연결시켜준다.
+- Blue/Green
+
+  - 컨트롤러로 파드를 생성하면 라벨이 있기때문에 서비스에 있는 셀렉터와 연결할 수 있다. 이 상태에서 컨트롤러를 하나 더 만들어서 다음 버전에 대한 파드를 만들어 자원사용량은 기존의 두 배가 되고 새로 만든 파드에만 서비스 연결을 해주게 된다.
+  - 만약 새로 만든 버전이 문제가 생기게 되면 이전 버전으로 다시 연결할 수 있어 문제 시 rollback이 된다. (새로운 버전에 문제가 없으면 이전 버전은 삭제한다.)
+- Canary
+
+- (불특정다수에 대한 방식)파드에 라벨이 붙어있는 상태에서 서비스를 만들어 연결하는데 시범으로 컨트롤러를 만들어서 다음 버전에 대한 파드를 만들어 서비스에 연결한다. 만약에 문제가 되면 새로만든 컨트롤러의 replicas를 0으로 만든다.
+- 이전 버전과 새로운 버전 대로 서비스를 만들고 Ingress Controller의 path를 버전으로 연결하면 해당 path로 연결하는 사람들은 새로운 버전에 대해서만 이용하게 된다.
+
+### Deployment - Recreate, RollingUpdate 실습
+- Recreate
+```
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-1
+spec:
+  selector:
+    type: app
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-1
+spec: # 만들 때 3개를 만드는 것을 알 수 있다.
+  selector: #CHECK
+    matchLabels:
+      type: app
+  replicas: 2 #CHECK
+  strategy: # 배포방법
+    type: Recreate
+  revisionHistoryLimit: 1  # 0인 래플리카셋을 하나 남기겠다 디폴트는 10개
+  template: #CHECK 
+    metadata: 
+      labels:
+        type: app
+    spec:
+      containers:
+      - name: container
+        image: kubetm/app:v1
+      terminationGracePeriodSeconds: 10
+```
+- RollingUpdate
+```
+# 서비스
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-2
+spec:
+  selector:
+    type: app2
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-2
+spec:
+  selector:
+    matchLabels:
+      type: app2
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+  minReadySeconds: 10 #업데이트가 순식간에 진행되지 않고 10초라는 기간을 가지고 진행하게 된다.
+  template:
+    metadata:
+      labels:
+        type: app2
+    spec:
+      containers:
+      - name: container
+        image: kubetm/app:v1
+      terminationGracePeriodSeconds: 0
+```
