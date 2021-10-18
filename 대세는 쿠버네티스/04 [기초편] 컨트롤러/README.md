@@ -28,11 +28,13 @@
         - 추가적인 기능
             - matchLabels: Replication과 같이 key, value가 모두 같아야 연결을 해준다.
             - matchExpressions: key와 value를 자세하게 컨트롤 할 수 있다. 만약 operator를 Exist라고 넣게 되면 kery에 대해서 라벨이 같은 모든 파드들을 선택하게 된다.
+        <img />
+
         - operator
-            - Exists
-            - DoesNotExist
-            - In
-            - Notln
+            - Exists: 자신이 키를 정하고 그에 맞는 값을 갖지고 있는 파드들을 연결을 한다.
+            - DoesNotExist: 자신의 키의 값을 정하면 자신과 같지 않은 값을 가지고 있는 파드들과 연결을 한다.
+            - In: key, value 지정이 가능해서 그와 관련되이 되어 있는 파드들과 연결이 가능하다.
+            - Notln: key, value 지정이 가능해서 그와 관련이 없는 파드들과 연결이 가능하다.
 
 
 ### Replication Controller, ReplicaSet 실습
