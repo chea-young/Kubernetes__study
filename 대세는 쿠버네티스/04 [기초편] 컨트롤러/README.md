@@ -208,3 +208,85 @@ spec:
         image: kubetm/app:v1
       terminationGracePeriodSeconds: 0
 ```
+
+### DaemonSet, Job, CronJob
+- Controller
+  - Deamonset
+  <img />
+
+    - Node들이 있고 각 노드에 다른 자원들이 들어간 상태에서 각각의 노드마다 설치해서 쿠버네틱스 자체가 네트워킹을 관리하기 위해서 각각의 노드에 데몬셋으로 프록시 역할을 하는 파드를 생성한다.
+      - 이렇게 각각 존재해야하는 서비스는 Prometheus[Performance](각 노드들의 성능상태를 감시), Logging[fluentd](특정 노드에 문제가 발생했을 경우 바로 파악하기 위해 사용), GlusterFS[Storage](각각의 노드에 설치되서 해당 자원을 가지고 네트워크 파일 시스템을 구축 )
+  - Job, CronJob
+  <img />
+
+  - Pod들로 만들어진 파드는 문제 시 그냥 제거되지만 컨트롤러에 의해서 생성된 파드는 문제 시 다른 노드에 다시 재 생성된다. 그리고 오랫동안 사용하지 않은 파드들은 레플리카셋은 다시 재시작시켜준다.
+    - recreate: 아이피, 이름이 달라진 채로 생성된다
+    - restart: 파드는 그대로 있고 파드안의 컨테이너만 재개봉시켜준다.
+  - Job: 파드는 프로세서가 일을 하지 않으면 파드는 종료(자원을 사용하지 않는 상태로 멈춤)가 된다.
+  - CronJob: Job들을 주기적은 시각에 따라서 생성을 한다. 보통 잡 단일로 사용하기 보다는 크론잡을 만들어 주기적으로 단위를 사용한다.
+- DaemonSet
+  <img />
+
+  - 셀렉터와 템플릿이 있어서 모든 노드에 탬플릿으로 파드를 만들고 셀렉터와 라벨로 데몬셋과 연결이 된다.
+  - nodeSelector: 라벨을 이것으로 지정하며 이게 없는 노드에는 파드가 생성되지 않는다.(데몬셋은 하나를 초과해서 파드를 만들 수는 없지만 아예 안만들 수는 있다.)
+  - hostPort: 직접 노드에 있는 포트가 이 파드로 연결이 되서 외부에서 접근 할 수 있다.
+- Job
+  <img />
+
+  - 템플릿과 셀렉터가 존재한다.
+  - 템플릿에는 특정 작업만 하고 종료가 되는 일을하는 파드들을 담는다. 
+  - selector는 직접 만들지 않아도 잡이 알아서 만들어준다.
+  - completions: 갯수에 따라 파드를 순차적으로 실행시켜서 작업이 끝나야 잡이 제가가 된다.
+  - parallelism: 갯수에 따라 그 개수만큼의 파드가 생성이 된다.
+  - activeDeadlineSeconds: 숫자만큼 기능이 종료되고 실행되고, 실행되지 못 한 파드들이 다 제가가 된다.
+
+- CronJob
+  <img />
+
+  - Job 템플릿이 있어서 Job을 생성하고 스케줄이 있어서 그 시간을 주기로 잡을 만든다.
+  - Allow: 1분마다 스케줄을 한다고 설정하며 1분이 됬을 때 잡이 만들어지고 크론잡이 만들어진다.
+  - Forbid: 
+  - Replace: 
+
+### DaemonSet, Job, CronJob 실습
+- DaemonSet
+```
+#DaemonSet
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: daemonset-2
+spec:
+  selector:
+    matchLabels:
+      type: app
+  template:
+    metadata:
+      labels:
+        type: app
+    spec:
+      nodeSelector:
+        os: centos
+      containers:
+      - name: container
+        image: kubetm/app
+        ports:
+        - containerPort: 8080
+```
+- Job
+```
+#Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-1
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: container
+        image: kubetm/init
+        command: ["sh", "-c", "echo 'job start';sleep 20; echo 'job end'"]
+      terminationGracePeriodSeconds: 0
+```
