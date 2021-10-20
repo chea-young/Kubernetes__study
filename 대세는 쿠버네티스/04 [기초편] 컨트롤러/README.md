@@ -156,6 +156,12 @@ spec:
 
 ### Deployment - Recreate, RollingUpdate 실습
 - Recreate
+  - Deployment를 만드면 레플리카스만큼의 파드를 만든다. 
+  - Deployment는 여러 레플리카셋을 만드는데 각각의 레플리카셋은 자신의 파드를 구별하기 위해서 추가적인 라벨과 셀렉터를 붙여준다.
+  - 서비스를 만들면 아까 생성한 파드가 연결되어 있고 master에서 `curl [서비스 클러스터 IP]:8080/version`를 실행해 보면 파드의 버전을 리턴한다.
+  - `while true; do [서비스 클러스터 IP]:8080/version; sleep 1; done`이걸 실행하여 1초마다 버전을 찍히게 해서 Deployment에서 이미지를 버전을 바꾸고 업데이트를 하면 '서비스에 접속할 수 없다라고 나오다가 바뀐 버전을 리턴한다. 그리고 대시보드의 파드에 가보면 새로운 버전의 파드가 하나씩 생성되어 다시 레플리카스의 수만큼 만들어진다.
+    - 이 과정을 한번 더 하면(v3으로 업데이트하면) `revisionHistoryLimit: 1` 이기 때문에 레플리카셋의 v1은 삭제되면 v2와 v3가 남게 된다.
+  - rollback을 하기 위해 대시보드에서 Deployment의 이미지를 이전 버전으로 바꿀 수 있고 `kubectl rollout undo deployment deployment-1 --to-revision=2`, `kubectl rollout history deployment deployment-1` 이렇게 커맨드를 이용해서 바꿀 수도 있다.
 ```
 # Service
 apiVersion: v1
@@ -194,6 +200,7 @@ spec: # 만들 때 3개를 만드는 것을 알 수 있다.
       terminationGracePeriodSeconds: 10
 ```
 - RollingUpdate
+  - `while true; do [서비스 클러스터 IP]:8080/version; sleep 1; done`를 mater에 실행시킨 상태에서 Deployment를 다음 바전으로 변경해보면 Recreate가 다르게 완전 업그레이드가 되기 전까지 v1, v2가 번갈아서 리턴되며 완전이 업그레이드가 끝났을 때 v2만이 계속 출력된다.
 ```
 # 서비스
 apiVersion: v1
@@ -230,6 +237,43 @@ spec:
       - name: container
         image: kubetm/app:v1
       terminationGracePeriodSeconds: 0
+```
+- Blue/Green
+ -v1과 v2에대한 레플리카셋과 서비스를 만든 후 v1으로 서비스가 되고 있는 상태에서 `while true; do [서비스 클러스터 IP]:8080/version; sleep 1; done`를 mater에서 실행시킨 뒤에 서비스이 셀렉터를 v2를 변경하면 Downtime 없이 v1에서 바로 v2로 반환되는 것을 확인할 수 있다.
+```
+#ReplicaSet
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: replica1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      ver: v1
+  template:
+    metadata:
+      name: pod1
+      labels:
+        ver: v1
+    spec:
+      containers:
+      - name: container
+        image: kubetm/app:v1
+      terminationGracePeriodSeconds: 0
+
+#Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-3
+spec:
+  selector:
+    ver: v1
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
 ```
 
 ### DaemonSet, Job, CronJob
