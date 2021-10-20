@@ -28,6 +28,7 @@
         - 추가적인 기능
             - matchLabels: Replication과 같이 key, value가 모두 같아야 연결을 해준다.
             - matchExpressions: key와 value를 자세하게 컨트롤 할 수 있다. 만약 operator를 Exist라고 넣게 되면 kery에 대해서 라벨이 같은 모든 파드들을 선택하게 된다.
+              - 사전에 어떤 오브젝트가 미리 만들어져있고 그 오브젝트들에 여러 라벨들이 붙여있을 때 내가 원하는 오브젝트를 세밀하게 선택하기 위해서 보통 사용된다.(그래서 자주 사용하지는 않는다)
         <img />
 
         - operator
@@ -39,6 +40,10 @@
 
 ### Replication Controller, ReplicaSet 실습
 - Template
+  - 파드와 레플리카스를 생성한 후 레플리카스에 들어가보면 파스가 연결되어 있는 것을 확인할 수 있다.
+  - 레플리카스의 수를 하나 더 들리면 컨트롤러는 동일한 파드를 하나 더 생성한다.(해당 레플리카스 수는 유지되기 위해 자동적으로 생성하게 된다.)
+  - 업그레이드를 하고 싶으면 레플리카스의 템플릿의 이미지의 버전을 바꾼 후 기존의 파드를 모두 삭제하면 바로 만들어지면서 다음 바꾼 버전으로 만들어진다.
+  - 컨트롤러를 삭제하면 연결된 파드들은 함께 삭제 된다. (`kubectl delete replicationcontrollers replication1 --cascade=false` 이용하면 파드가 함께 제거되지 않는다.)
 ```
 #Pod
 apiVersion: v1
@@ -51,7 +56,7 @@ spec:
   containers:
   - name: container
     image: kubetm/app:v1
-  terminationGracePeriodSeconds: 0
+  terminationGracePeriodSeconds: 0 # Pod를 삭제하면 디폴트는 30초 후에 삭제하게 되어있는데 이것은 0초안에 바로 삭제하게 된다.
 
 #ReplicationController
 apiVersion: apps/v1
@@ -59,12 +64,12 @@ kind: ReplicaSet
 metadata:
   name: replica1
 spec:
-  replicas: 1
+  replicas: 1 # CHECK 수를 들리면 자동으로 파드가 더 생성된다.
   selector:
     matchLabels:
       type: web # 파드 연결
   template: # 파드 내용 작성
-    metadata:
+    metadata: # 위의 파드 내용과 동일
       name: pod1
       labels:
         type: web
@@ -75,6 +80,9 @@ spec:
       terminationGracePeriodSeconds: 0
 ```
 - Selector
+  - 주의 사항
+    - 셀렉터의 내용이 템플릿 라벨의 내용에 포함이 되어야 한다.
+    - matchExpressions의 모든 조건들이 템플릿 라벨의 내용에 포함되어야 한다.
 ```
 #Selector
 apiVersion: apps/v1
@@ -94,7 +102,7 @@ spec:
     metadata:
       labels:
         type: web
-        ver: v1
+        ver: v1 #NOTE v3이 되면 셀렉터 내용과 맞지 않아 오류가 난다.
         location: dev
     spec:
       containers:
@@ -102,6 +110,21 @@ spec:
         image: kubetm/app:v1
       terminationGracePeriodSeconds: 0
 
+#Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-node-affinity1
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIngnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions: #좀 더 노드를 세밀하게 스케줄링하게 된다.
+  	       - {key: AZ-01, operator: Exists}
+  containers:
+  - name: container
+    image: kubetm/init
 ```
 
 ### Deployment - Recreate, RollingUpdate
@@ -289,4 +312,23 @@ spec:
         image: kubetm/init
         command: ["sh", "-c", "echo 'job start';sleep 20; echo 'job end'"]
       terminationGracePeriodSeconds: 0
+```
+- CronJob
+```
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cron-job
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: container
+            image: kubetm/init
+            command: ["sh", "-c", "echo 'job start';sleep 20; echo 'job end'"]
+          terminationGracePeriodSeconds: 0
 ```
