@@ -317,8 +317,34 @@ spec:
 
 ### DaemonSet, Job, CronJob 실습
 - DaemonSet
+  - HostPort 기능 확인하기
+    - 데몬셋을 만들면 각각의 노드에 파드가 만들어진다.
+    - master에 `curl [노드 1,2 의 IP]:18080/hostname`쳐보면 각자 node에 대한 파드 이름이 나오는 것을 확인할 수 있다.
+  - NodeSelector 기능 확인하기
+    - 우선 각가의 노드에 `kubectl label nodes k8s-node1 os=centos`, `kubectl label nodes k8s-node2 os=ubuntu` 커맨드를 실행시켜 라벨을 달고 데몬셋을 만들고  `nodeSelector`에 대한 노드에만 파드가 생성된다.
 ```
-#DaemonSet
+#DaemonSet - Hostport
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: daemonset-1
+spec:
+  selector:
+    matchLabels:
+      type: app
+  template: # 파드의 내용이 들어감.
+    metadata:
+      labels:
+        type: app
+    spec:
+      containers:
+      - name: container
+        image: kubetm/app
+        ports:
+        - containerPort: 8080
+          hostPort: 18080 # 이 포트로 들어오면 해당 노드에 생성된 파드로 트래픽이 가는 것을 볼 수 있다.
+
+#DaemonSet - NodeSelector
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -332,7 +358,7 @@ spec:
       labels:
         type: app
     spec:
-      nodeSelector:
+      nodeSelector: #지정된 노드에만 파드가 생성된다.
         os: centos
       containers:
       - name: container
@@ -341,8 +367,10 @@ spec:
         - containerPort: 8080
 ```
 - Job
+  - 1: 로그를 보면 job start를 찍고 파드는 계속 Runnig 중이다가 20초가 지나면 Terminate 상태가 되면서 파드가 종료가 된다. 그 후 job의 로그를 보면 job end가 찍힌 것을 확인할 수 있다. 이 후 job을 삭제하면 연결된 pod도 함께 삭제가 된다.
+  - 2: 돌아가다가 잡이 지정된 시간보다 오래활성화가 되었다고 오류가 되고 처음에 실행되었던 2파드만이 정상적으로 종료가 되었고 그 다음에 만들어진 2개의 파드는 삭제가 되고 총 6개를 준비를 했지만 잡이 중지가 됬기때문에 더 이상 파드는 생기지 않고 잡의 기능이 멈춘다.
 ```
-#Job
+#Job-1
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -354,17 +382,47 @@ spec:
       containers:
       - name: container
         image: kubetm/init
+        command: ["sh", "-c", "echo 'job start';sleep 20; echo 'job end'"] #job end가 나오면 해당 job의 역할도 끝난다.
+      terminationGracePeriodSeconds: 0
+
+#Job-2
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-2
+spec:
+  completions: 6 # 하나의 잡에 대해 6개의 파드를 준비한다.
+  parallelism: 2 # 2의 파드씩 paral하게 된다.
+  activeDeadlineSeconds: 30 #30초씩 잡은 중지되면서 현재 동작 중이던 파드들은 삭제가 된다.
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: container
+        image: kubetm/init
         command: ["sh", "-c", "echo 'job start';sleep 20; echo 'job end'"]
       terminationGracePeriodSeconds: 0
 ```
+
 - CronJob
+  - 1
+    - CronJob의 트리거로 바로 잡을 생성할 수 있다.
+    - `kubectl create job --from=cronjob/cron-job cron-job-manual-001`의 커맨드로 크론잡에서 이름이 cron-job인 크론잡에서 가져와 잡을 cron-job-manual-001 이름으로 생성하게 된다.
+      - 이렇게 만들게 되면 크론잡을 삭제해서 잡은 삭제가 되지 않는다.
+    - 크론잡이 Suspend가 false에서 true가 되면 일시적으로 잡을 만들지 않는다.(true가 되게 대시보드의 yaml을 수정해서 바꿀 수 있다.)
+      - `kubectl patch cronjobs cron-job -p '{"spec" : {"suspend" : false }}'` 이렇게 커맨드로도 바꿀 수 있다.
+  - ConcurrencyPolicy 
+    - Forbid: 2분 20초 동안 Sleep을 하기 때문에 20은 만들어주지만 21분때는 스킵되고 22분 때에 20분꺼가 끝나면서 만들어질 것이다.
+    - Replace: 20분 스케줄에 잡이 하나 만들어져서 파드가 Running 중이다가 21분 때 파드가 러닝 중이기 때문에 잡은 생성되지 않고 22분때에 새로운 잡이 생기면서 30분때의 파드와 연결이 되서 계속 Running이 되어 있을 것이다.
+      - 
 ```
+#CronJob -1
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cron-job
 spec:
-  schedule: "*/1 * * * *"
+  schedule: "*/1 * * * *" #잡을 1분에 하나씩 생성
   jobTemplate:
     spec:
       template:
@@ -373,6 +431,44 @@ spec:
           containers:
           - name: container
             image: kubetm/init
-            command: ["sh", "-c", "echo 'job start';sleep 20; echo 'job end'"]
+            command: ["sh", "-c", "echo 'job start';sleep 20; echo 'job end'"] #CHECK 이게 없으면 잡이 제거가 되지 않는다.
+          terminationGracePeriodSeconds: 0
+
+#CronJob - ConcurrencyPolicy - Forbid
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cron-job-2
+spec:
+  schedule: "20,21,22 * * * *" #20,21,22분에 잡이 생성된다.
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: container
+            image: kubetm/init
+            command: ["sh", "-c", "echo 'job start';sleep 140; echo 'job end'"] 
+          terminationGracePeriodSeconds: 0
+
+#CronJob - ConcurrencyPolicy - Replace
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cron-job-2
+spec:
+  schedule: "20,21,22 * * * *" 
+  concurrencyPolicy: Replace
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: container
+            image: kubetm/init
+            command: ["sh", "-c", "echo 'job start';sleep 140; echo 'job end'"] 
           terminationGracePeriodSeconds: 0
 ```
