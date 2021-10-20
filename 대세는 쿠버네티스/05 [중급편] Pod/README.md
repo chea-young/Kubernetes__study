@@ -79,3 +79,30 @@
 
 
 ### Pod - ReadinessProbe, LivenessProbe 실습
+
+
+### Pod - QoS Classes
+- 컨테이너의 리소스 설정에서 requests와 limits에 따라서 메모리와 cpu를 어떻게 설정하는지에 따라서 결정이 된다.
+- 노드에 리소스가 있고 노드 위에 파드가 3개가 만들어져서 균등하게 자원을 사용하고 있을 때 파드1이 추가적으로 자원을 더 사용해야 하지만 추가적으로 더 사용할 수 있는 자원이 없는 상황 일 때 쿠버네티스에서는 앱의 중요도의 따라 이런 것을 관리할 수 있도록 3가지 단계로 Qos를 지원해주고 있다.
+    - 이 상황에서는 BestEffort인 파드가 가장 먼저 다운이 되서 자원이 반환되서 파드1이 사용할 수 있게 된다.
+    - 노드에 어느 정도의 자원이 남아있지만 파드2에서 더 많은 자원을 요구하는 상황이 된다면 Burstable로 된 자원이 그 다음으로 다운이 되면서 자원을 반환한다.
+- 속성
+    - Guaranteed
+    <img />
+     - 파드에 여러 컨테이너가 있다면 모든 컨테이너마다 requests와 limit가 설정되고 그 안의 메모리와 cpi가 있어야 한다.
+     - 각 컨테이너의 메모리와 CPU의 리쿼스트와 limit의 값이 같아야 한다.
+    - Burstable
+    <img />
+     - 컨테이너마다 requests와 limit는 설정되어 있지만 requests와 limit가 다 다른 경우이다
+     - requests와 limit  중에 하나만이 설정되어 있는 경우이다
+     - 컨테어너가 2개인데 하나는 완벽하게 설정이 되어있고 하나는 아무것도 설정되어 있지 않은 경우이다
+
+    - BestEffort
+    <img />
+     - 파드의 어떤 컨테이너에도 requests와 limit가 설정되어 있지 않는 경우이다.
+- OOM Score(Out of Memory Score)
+    - 현재 이 파드의 리쿼스트 메모리의 사용량을 계산해서 이 OOMscore가 더 큰 파드를 먼저 제거한다.
+
+
+
+### Pod - QoS Classes 실습
