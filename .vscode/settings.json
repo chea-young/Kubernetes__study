@@ -1,0 +1,38 @@
+{
+    "commentAnchors.tags.list": [
+        {
+            "tag": "FIX",
+            "iconColor": "#F44336",
+            "highlightColor": "#F44336",
+            "scope": "workspace"
+          },
+          {
+            "tag": "TODO",
+            "iconColor": "blue",
+            "highlightColor": "#3ea8ff",
+            "scope": "workspace",
+            "styleComment": true,
+          },
+          {
+            "tag": "NOTE",
+            "iconColor": "#64DD17",
+            "highlightColor": "#64DD17",
+            "scope": "file",
+            "styleComment": true,
+          },
+        {
+          "tag": "TEST",
+          "iconColor": "#FFD73C",
+          "highlightColor": "#FFD73C",
+          "scope": "file"
+        },
+        {
+          "tag": "CHECK",
+          "iconColor": "#FF50CF",
+          "highlightColor": "#FF50CF",
+          "scope": "workspace",
+          "behavior": "region",
+          "styleComment": true,
+        },
+      ]
+}

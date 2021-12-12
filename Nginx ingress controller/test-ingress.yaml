@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test
+  template:
+    metadata:
+      name: test-pod
+      labels:
+        app: test
+    spec:
+      containers:
+      - image: whatwant/node-web:1.0
+        name: test
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-svc
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: test
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: test-svc
+            port:
+              number: 80
+        path: /test
+        pathType: ImplementationSpecific
